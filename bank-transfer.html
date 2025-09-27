@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bank Transfer Payment</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h2>Bank Transfer Payment</h2>
+      <h3>Total Amount: ₦<span id="total-amount"></span></h3>
+
+      <p>Please transfer your total amount to the account below:</p>
+
+      <div class="bank-details">
+        <p><strong>Bank Name:</strong> Access Bank</p>
+        <p><strong>Account Number:</strong> 1234567890</p>
+        <p><strong>Account Name:</strong> Vee's Beaut Store</p>
+      </div>
+
+      <hr />
+
+      <form id="payment-proof-form">
+        <label for="screenshot">Upload Payment Screenshot:</label><br />
+        <input
+          type="file"
+          id="screenshot"
+          accept="image/*"
+          required
+        /><br /><br />
+
+        <input type="hidden" id="order-id" value="ORDER123" />
+        <!-- dynamically set from checkout -->
+
+        <button type="submit">Submit Proof</button>
+      </form>
+
+      <div id="message"></div>
+    </div>
+
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+      const supabaseUrl = "https://mysclprkzyjujzmuqywa.supabase.co";
+      const supabaseKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15c2NscHJrenlqdWp6bXVxeXdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MTU1MTYsImV4cCI6MjA3NDE5MTUxNn0.792rk9eC_4JQ2L7hyNApoFDJ3N6v6Oxzf6Cn22PM-Jc";
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const form = document.getElementById("payment-proof-form");
+      const message = document.getElementById("message");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const fileInput = document.getElementById("screenshot");
+        const file = fileInput.files[0];
+        const orderId = document.getElementById("order-id").value;
+
+        if (!file) {
+          alert("Please upload a screenshot!");
+          return;
+        }
+
+        // Upload to Supabase Storage
+        const filePath = `payments/${Date.now()}_${file.name}`;
+        let { error: uploadError } = await supabase.storage
+          .from("payment-proofs")
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error("Upload failed:", uploadError.message);
+          message.textContent = "Error uploading screenshot.";
+          return;
+        }
+
+        // Save reference in Supabase DB
+        const { error: insertError } = await supabase.from("payments").insert([
+          {
+            order_id: orderId,
+            proof_url: filePath,
+            status: "pending_verification",
+          },
+        ]);
+
+        if (insertError) {
+          console.error("Insert failed:", insertError.message);
+          message.textContent = "Error saving payment proof.";
+          return;
+        }
+
+        message.textContent =
+          "Payment proof submitted successfully! We will verify soon.";
+        form.reset();
+      });
+    </script>
+  </body>
+</html>
