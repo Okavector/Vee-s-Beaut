@@ -231,6 +231,7 @@
             <div class="card-footer">
               <button
                 class="btn btn-lg w-100 btn-primary font-weight-bold my-3"
+                id="place-order-btn"
               >
                 Place Order
               </button>
@@ -259,5 +260,80 @@
 
     <!-- Template Javascript -->
     <script src="js/checkout.js"></script>
+    
+    <script>
+      document.getElementById('place-order-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Get the selected payment method
+        const selectedPayment = document.querySelector('input[name="payment"]:checked');
+        
+        if (!selectedPayment) {
+          alert('Please select a payment method');
+          return;
+        }
+        
+        // Get cart total from localStorage
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const shipping = cart.length > 0 ? 1000 : 0;
+        const total = subtotal + shipping;
+        
+        if (cart.length === 0) {
+          alert('Your cart is empty');
+          return;
+        }
+        
+        // Get billing information
+        const firstName = document.querySelector('input[placeholder="Enter first name"]').value;
+        const lastName = document.querySelector('input[placeholder="Enter last name"]').value;
+        const email = document.querySelector('input[placeholder="example@email.com"]').value;
+        const phone = document.querySelector('input[placeholder="+234 123 456 789"]').value;
+        const address = document.querySelector('input[placeholder="Enter your address"]').value;
+        const city = document.querySelector('input[placeholder="Enter city"]').value;
+        const state = document.querySelector('input[placeholder="Enter state"]').value;
+        
+        // Validate required fields
+        if (!firstName || !lastName || !email || !phone || !address || !city || !state) {
+          alert('Please fill in all required billing information');
+          return;
+        }
+        
+        // Create order object
+        const orderData = {
+          orderId: 'ORDER_' + Date.now(),
+          items: cart,
+          subtotal: subtotal,
+          shipping: shipping,
+          total: total,
+          billingInfo: {
+            firstName,
+            lastName,
+            email,
+            phone,
+            address,
+            city,
+            state
+          },
+          paymentMethod: selectedPayment.id,
+          orderDate: new Date().toISOString()
+        };
+        
+        // Store order data temporarily
+        localStorage.setItem('currentOrder', JSON.stringify(orderData));
+        
+        // Redirect based on payment method
+        if (selectedPayment.id === 'banktransfer') {
+          window.location.href = 'bank-transfer.html';
+        } else if (selectedPayment.id === 'directcheck') {
+          // WhatsApp payment - create message and redirect
+          const message = `Hello! I want to place an order:\n\nOrder ID: ${orderData.orderId}\nTotal Amount: ₦${total.toLocaleString()}\n\nItems:\n${cart.map(item => `- ${item.name} x${item.quantity} = ₦${(item.price * item.quantity).toLocaleString()}`).join('\n')}\n\nBilling Info:\n${firstName} ${lastName}\n${email}\n${phone}\n${address}, ${city}, ${state}`;
+          const whatsappUrl = `https://wa.me/2348139020335?text=${encodeURIComponent(message)}`;
+          window.open(whatsappUrl, '_blank');
+        } else if (selectedPayment.id === 'paypal') {
+          alert('Paystack integration coming soon!');
+        }
+      });
+    </script>
   </body>
 </html>
