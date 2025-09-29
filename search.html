@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Search Results | Vee's Beaut</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="css/style.css" rel="stylesheet" />
+    <link href="css/modern-style.css" rel="stylesheet" />
+  </head>
+
+  <body>
+    <!-- Header Start -->
+    <div class="container-fluid">
+      <div class="row align-items-center py-4 px-xl-5">
+        <div class="col-lg-3 d-none d-lg-block">
+          <a href="index.html" class="text-decoration-none">
+            <div class="navbar-brand m-0">
+              <span class="text-primary font-weight-bold border px-3 mr-1"
+                >V's</span
+              >Beaut
+            </div>
+          </a>
+        </div>
+        <div class="col-lg-6 col-6">
+          <div class="search-bar">
+            <form id="search-form">
+              <input
+                type="text"
+                id="search"
+                name="search"
+                class="form-control search-input"
+                placeholder="Search for products"
+              />
+              <button type="submit" class="search-btn">
+                <i class="fa fa-search"></i>
+              </button>
+            </form>
+
+            <script>
+              document
+                .getElementById("search-form")
+                .addEventListener("submit", function (e) {
+                  e.preventDefault();
+                  const query = document.getElementById("search").value.trim();
+                  if (query) {
+                    window.location.href = `search.html?q=${encodeURIComponent(
+                      query
+                    )}`;
+                  }
+                });
+            </script>
+          </div>
+        </div>
+        <div class="col-lg-3 col-6 text-right">
+          <a href="cart.html" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-shopping-cart text-primary"></i>
+            <span class="badge" id="cart-count">0</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <!-- Header End -->
+
+    <!-- Search Results Start -->
+    <div class="section-padding">
+      <div class="container-fluid">
+        <div class="row px-xl-5">
+          <div class="col-12">
+            <div class="section-title mb-modern">
+              <h2 id="search-title">Search Results</h2>
+              <div class="row" id="search-results"></div>
+
+              <p id="search-subtitle">Found products matching your search</p>
+            </div>
+            <div id="search-results" class="row">
+              <!-- Search results will be displayed here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Search Results End -->
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-primary back-to-top">
+      <i class="fa fa-angle-double-up"></i>
+    </a>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/auth.js"></script>
+
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+      const supabaseUrl = "https://mysclprkzyjujzmuqywa.supabase.co";
+      const supabaseKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15c2NscHJrenlqdWp6bXVxeXdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MTU1MTYsImV4cCI6MjA3NDE5MTUxNn0.792rk9eC_4JQ2L7hyNApoFDJ3N6v6Oxzf6Cn22PM-Jc";
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchQuery = urlParams.get("q");
+      const searchTitle = document.getElementById("search-title");
+      const searchSubtitle = document.getElementById("search-subtitle");
+      const searchResults = document.getElementById("search-results");
+
+      if (searchQuery) {
+        searchTitle.textContent = `Search Results for "${searchQuery}"`;
+        performSearch(searchQuery);
+      } else {
+        searchResults.innerHTML =
+          '<div class="col-12 text-center"><p>No search query provided</p></div>';
+      }
+
+      async function performSearch(query) {
+        try {
+          const { data: products, error } = await supabase
+            .from("products")
+            .select("*")
+            .or(`name.ilike.%${query}%,category.ilike.%${query}%`);
+
+          if (error) {
+            console.error("Search error:", error);
+            searchResults.innerHTML =
+              '<div class="col-12 text-center"><p>Error performing search</p></div>';
+            return;
+          }
+
+          if (!products || products.length === 0) {
+            searchResults.innerHTML = `
+              <div class="col-12 text-center">
+                <h4>No products found for "${query}"</h4>
+                <p>Try searching with different keywords</p>
+                <a href="index.html" class="btn btn-primary">Back to Home</a>
+              </div>
+            `;
+            return;
+          }
+
+          searchSubtitle.textContent = `Found ${products.length} product${
+            products.length > 1 ? "s" : ""
+          }`;
+
+          searchResults.innerHTML = "";
+          products.forEach((product) => {
+            const productHTML = `
+              <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
+                <div class="card product-item mb-4 hover-lift animate-fade-in">
+                  <div class="card-header product-img position-relative overflow-hidden bg-transparent p-0">
+                    <img class="img-fluid w-100" src="${
+                      product.image_url
+                    }" alt="${product.name}">
+                  </div>
+                  <div class="card-body text-center">
+                    <h6 class="text-truncate mb-3 product-name">${
+                      product.name
+                    }</h6>
+                    <div class="d-flex justify-content-center">
+                      <h6 class="price product-price">₦${Number(
+                        product.price
+                      ).toLocaleString()}</h6>
+                    </div>
+                    <span class="badge badge-secondary">${
+                      product.category
+                    }</span>
+                  </div>
+                  <div class="card-footer d-flex justify-content-between">
+                    <a href="detail.html?id=${
+                      product.id
+                    }" class="btn btn-outline-primary btn-sm">
+                      <i class="fas fa-eye mr-1"></i>View
+                    </a>
+                    <a href="#" class="btn btn-primary btn-sm add-to-cart" data-product='${JSON.stringify(
+                      product
+                    )}'>
+                      <i class="fas fa-shopping-cart mr-1"></i>Add to Cart
+                    </a>
+                  </div>
+                </div>
+              </div>
+            `;
+            searchResults.innerHTML += productHTML;
+          });
+        } catch (error) {
+          console.error("Search error:", error);
+          searchResults.innerHTML =
+            '<div class="col-12 text-center"><p>Error performing search</p></div>';
+        }
+      }
+    </script>
+  </body>
+</html>
+
+<script type="module" src="js/search.js"></script>

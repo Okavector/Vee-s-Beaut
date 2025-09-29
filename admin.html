@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin | Vee's Beaut</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        background: linear-gradient(135deg, #6366f1, #ec4899);
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        background: #fff;
+        padding: 3rem;
+        border-radius: 20px;
+        width: 450px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(10px);
+      }
+
+      .container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+      }
+
+      h2 {
+        text-align: center;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+        font-weight: 700;
+        font-size: 2rem;
+        background: linear-gradient(135deg, #6366f1, #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      form input,
+      form select,
+      form button {
+        width: 100%;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        font-size: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #f8fafc;
+      }
+
+      form input:focus,
+      form select:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgb(99 102 241 / 0.1);
+        background: white;
+      }
+
+      form button {
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: #fff;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      }
+
+      form button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+      }
+
+      #status {
+        margin-top: 1rem;
+        text-align: center;
+        font-weight: 600;
+        padding: 1rem;
+        border-radius: 12px;
+      }
+
+      #status.success {
+        background: rgb(34 197 94 / 0.1);
+        color: #166534;
+      }
+
+      #status.error {
+        background: rgb(239 68 68 / 0.1);
+        color: #991b1b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Add Product</h2>
+      <form id="productForm">
+        <input type="text" name="name" placeholder="Product Name" required />
+        <input type="number" name="price" placeholder="Price (₦)" required />
+        <select name="category" required>
+          <option value="">Select Category</option>
+          <option value="Lipgloss">Lipgloss</option>
+          <option value="Hair Accessories">Hair Accessories</option>
+          <option value="Personal Care">Personal Care</option>
+          <option value="Jewelries">Jewelries</option>
+          <option value="Bags">Bags</option>
+          <option value="Gift Packages">Gift Packages</option>
+          <option value="Other Essentials">Other Essentials</option>
+        </select>
+        <input type="file" name="image" accept="image/*" required />
+        <button type="submit">Add Product</button>
+      </form>
+      <div id="status"></div>
+    </div>
+
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+      const supabaseUrl = "https://mysclprkzyjujzmuqywa.supabase.co";
+      const supabaseKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15c2NscHJrenlqdWp6bXVxeXdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MTU1MTYsImV4cCI6MjA3NDE5MTUxNn0.792rk9eC_4JQ2L7hyNApoFDJ3N6v6Oxzf6Cn22PM-Jc";
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const form = document.getElementById("productForm");
+      const status = document.getElementById("status");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        // Check if user is authenticated
+        if (
+          window.authManager &&
+          !window.authManager.requireAuth("add products")
+        ) {
+          return;
+        }
+        const name = form.name.value;
+        const price = parseFloat(form.price.value);
+        const category = form.category.value;
+        const file = form.image.files[0];
+
+        if (!file) {
+          alert("Select an image!");
+          return;
+        }
+
+        try {
+          // ✅ Log form values BEFORE uploading
+          console.log("Form values:", { name, price, category, file });
+
+          status.textContent = "Uploading...";
+          status.className = "";
+
+          // Upload image to Supabase Storage
+          const { data: uploadData, error: uploadError } =
+            await supabase.storage
+              .from("products-images")
+              .upload(`public/${Date.now()}_${file.name}`, file, {
+                upsert: true,
+              });
+
+          if (uploadError) throw uploadError;
+
+          const { publicUrl } = supabase.storage
+            .from("products-images")
+            .getPublicUrl(uploadData.path);
+
+          // Insert product into database
+          const { error } = await supabase.from("products").insert([
+            {
+              name,
+              price,
+              category,
+              image_url: publicUrl,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+
+          // ✅ Log insert response
+          console.log("Insert response:", { error });
+
+          if (error) throw error;
+
+          status.textContent = "Product added successfully!";
+          status.className = "success";
+          form.reset();
+        } catch (err) {
+          console.error(err);
+          status.textContent = "Error: " + err.message;
+          status.className = "error";
+        }
+      });
+    </script>
+    <script src="js/auth.js"></script>
+  </body>
+</html>

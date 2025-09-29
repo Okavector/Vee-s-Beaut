@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bank Transfer Payment</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      /* Scoped styles to make this page look more professional */
+      .panel {
+        max-width: 820px;
+        margin: 48px auto;
+        padding: 28px;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: 0 8px 30px rgba(17, 24, 39, 0.06);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial;
+        color: #1b1f23;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+      .logo {
+        width: 68px;
+        height: 68px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid #eee;
+      }
+      .lead {
+        color: #555;
+        margin-top: 4px;
+      }
+      .bank-details {
+        background: #fbfdff;
+        padding: 14px;
+        border-radius: 8px;
+        border: 1px solid #f0f4f8;
+        margin-bottom: 18px;
+      }
+      .form-group {
+        margin-bottom: 14px;
+      }
+      label.required::after {
+        content: " *";
+        color: #c0392b;
+      }
+      input[type="text"],
+      input[type="tel"],
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #e6edf3;
+        font-size: 14px;
+      }
+      input[type="file"] {
+        font-size: 14px;
+      }
+      .total-amount {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0b4a6f;
+      }
+      .small-muted {
+        color: #667085;
+        font-size: 0.95rem;
+      }
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #0b5fff;
+        color: #fff;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .btn-primary[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #message {
+        margin-top: 12px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <div class="header">
+        <div>
+          <h2 style="margin: 0">Bank Transfer Payment</h2>
+          <div class="lead small-muted">
+            Securely upload your payment proof — our team will verify and
+            process your order.
+          </div>
+        </div>
+      </div>
+
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        "
+      >
+        <div class="small-muted">
+          Please transfer your total amount to the account below:
+        </div>
+        <div class="total-amount" id="total-amount">—</div>
+      </div>
+
+      <div class="bank-details">
+        <p style="margin: 6px 0"><strong>Bank:</strong> Access Bank</p>
+        <p style="margin: 6px 0"><strong>Account number:</strong> 1234567890</p>
+        <p style="margin: 6px 0">
+          <strong>Account name:</strong> Vee's Beaut Store
+        </p>
+      </div>
+
+      <form id="payment-proof-form" novalidate>
+        <div class="form-group">
+          <label for="screenshot" class="required"
+            >Upload payment screenshot</label
+          >
+          <input type="file" id="screenshot" accept="image/*" required />
+          <div class="small-muted">Accepts JPG, PNG. Max 10MB.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="fullname" class="required">Full name</label>
+          <input
+            type="text"
+            id="fullname"
+            placeholder="e.g. Jane Doe"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="phone" class="required">Phone number</label>
+          <input
+            type="tel"
+            id="phone"
+            placeholder="e.g. +2348012345678"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="address" class="required">Delivery address</label>
+          <textarea
+            id="address"
+            rows="3"
+            placeholder="Street, City, State"
+            required
+          ></textarea>
+        </div>
+
+        <input type="hidden" id="cart-items" />
+
+        <button type="submit" class="btn-primary">Submit proof</button>
+      </form>
+
+      <div id="message" role="status" aria-live="polite"></div>
+    </div>
+
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+      const supabaseUrl = "https://mysclprkzyjujzmuqywa.supabase.co";
+      const supabaseKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15c2NscHJrenlqdWp6bXVxeXdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MTU1MTYsImV4cCI6MjA3NDE5MTUxNn0.792rk9eC_4JQ2L7hyNApoFDJ3N6v6Oxzf6Cn22PM-Jc";
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const form = document.getElementById("payment-proof-form");
+      const message = document.getElementById("message");
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const ORIGINAL_BTN_TEXT = submitBtn.innerHTML;
+
+      function setButtonLoading(loading) {
+        if (loading) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML =
+            '<span class="spinner" aria-hidden="true"></span> Sending...';
+        } else {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = ORIGINAL_BTN_TEXT;
+        }
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        message.textContent = "";
+
+        const fileInput = document.getElementById("screenshot");
+        const fullnameInput = document.getElementById("fullname");
+        const phoneInput = document.getElementById("phone");
+        const addressInput = document.getElementById("address");
+        const cartItemsInput = document.getElementById("cart-items");
+
+        const file = fileInput.files[0];
+        const fullname = fullnameInput.value.trim();
+        const phone = phoneInput.value.trim();
+        const address = addressInput.value.trim();
+        const cartItems = JSON.parse(cartItemsInput.value || "[]");
+
+        // Get amount from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const amount = urlParams.get("amount");
+
+        // Basic client-side validation
+        if (!file) {
+          message.textContent = "Please attach a payment screenshot.";
+          return;
+        }
+        if (!file.type.startsWith("image/")) {
+          message.textContent = "Uploaded file must be an image (JPG, PNG).";
+          return;
+        }
+        const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+        if (file.size > MAX_BYTES) {
+          message.textContent =
+            "File is too large. Please upload a file smaller than 10MB.";
+          return;
+        }
+
+        if (!fullname || !phone || !address) {
+          message.textContent = "Please fill in all required fields.";
+          return;
+        }
+
+        // Generate unique order ID
+        const orderId = `ORDER_${Date.now()}_${Math.random()
+          .toString(36)
+          .slice(2, 11)}`;
+
+        // Upload flow
+        setButtonLoading(true);
+        try {
+          // Upload to Supabase Storage
+          const filePath = `payments/${Date.now()}_${file.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from("payment-proofs")
+            .upload(filePath, file);
+
+          if (uploadError) {
+            console.error("Upload failed:", uploadError.message);
+            message.textContent =
+              "Error uploading screenshot. Please try again.";
+            return;
+          }
+
+          // Get public URL for the uploaded file
+          const { data } = supabase.storage
+            .from("payment-proofs")
+            .getPublicUrl(filePath);
+          const publicUrl = data && data.publicUrl ? data.publicUrl : null;
+
+          // Save order details in Supabase DB
+          const { error: insertError } = await supabase
+            .from("payments")
+            .insert([
+              {
+                order_id: orderId,
+                full_name: fullname,
+                phone_number: phone,
+                delivery_address: address,
+                amount: Number(amount) || null,
+                cart_items: cartItems,
+                proof_url: filePath,
+                proof_public_url: publicUrl,
+                status: "pending_verification",
+                created_at: new Date().toISOString(),
+              },
+            ]);
+
+          if (insertError) {
+            console.error("Insert failed:", insertError.message);
+            message.textContent =
+              "Error saving payment proof. Please contact support.";
+            return;
+          }
+
+          // Success: show friendly message then redirect
+          message.style.color = "#0b5fff";
+          message.textContent = `Payment proof submitted successfully! Your order ID is ${orderId}. Redirecting...`;
+          form.reset();
+
+          try {
+            localStorage.removeItem("pendingOrder");
+            localStorage.removeItem("cart");
+          } catch (e) {
+            console.warn("localStorage clear failed:", e);
+          }
+
+          // Give the user a brief moment to read the confirmation, then redirect
+          setTimeout(() => {
+            window.location.href = `thank-you.html?order=${encodeURIComponent(
+              orderId
+            )}`;
+          }, 900);
+        } catch (err) {
+          console.error(err);
+          message.style.color = "#c0392b";
+          message.textContent =
+            "An unexpected error occurred. Please try again later.";
+        } finally {
+          setButtonLoading(false);
+        }
+      });
+    </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Prefill form values from pendingOrder if available
+        const pendingOrder = JSON.parse(
+          localStorage.getItem("pendingOrder") || "{}"
+        );
+        if (pendingOrder.fullName)
+          document.getElementById("fullname").value = pendingOrder.fullName;
+        if (pendingOrder.phone)
+          document.getElementById("phone").value = pendingOrder.phone;
+        if (pendingOrder.address)
+          document.getElementById("address").value = pendingOrder.address;
+
+        // Get amount from URL and display formatted
+        const params = new URLSearchParams(window.location.search);
+        const amount = params.get("amount");
+        if (amount) {
+          const formatted = new Intl.NumberFormat("en-NG", {
+            style: "currency",
+            currency: "NGN",
+          }).format(amount);
+          document.getElementById("total-amount").textContent = formatted;
+        }
+
+        // Set cart items in hidden field
+        const cart =
+          pendingOrder.cartItems ||
+          JSON.parse(localStorage.getItem("cart") || "[]");
+        document.getElementById("cart-items").value = JSON.stringify(cart);
+      });
+    </script>
+
+    <hr style="margin-top: 30px; margin-bottom: 20px" />
+
+    <div
+      style="
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+      "
+    >
+      <h3 style="color: #333; margin-bottom: 10px">What happens next?</h3>
+      <p style="color: #555; font-size: 15px; line-height: 1.6">
+        ✅ Once you submit your payment proof, our team will review and verify
+        it within the shortest possible time. ✅ After successful verification,
+        we’ll confirm your order and prepare it for delivery. ✅ You’ll receive
+        a confirmation message via WhatsApp or SMS.
+      </p>
+
+      <p style="margin-top: 15px; color: #666; font-size: 14px">
+        If you have any questions or need assistance, please contact us:
+        <br />📞 <strong>+234 813 902 0335</strong> (WhatsApp available)
+      </p>
+
+      <p style="margin-top: 15px; font-weight: bold; color: #444">
+        Thank you for shopping with
+        <span style="color: #d63384">Vee's Beaut Store</span> 💖 We truly value
+        your patronage!
+      </p>
+    </div>
+  </body>
+</html>
