@@ -242,44 +242,7 @@
               data-ride="carousel"
               style="border-radius: 12px; overflow: hidden"
             >
-              <div class="carousel-inner">
-                <div class="carousel-item active">
-                  <img class="img-fluid" src="img/product4.jpeg" alt="Image" />
-                  <div
-                    class="carousel-caption d-flex flex-column align-items-center justify-content-center glass-effect"
-                  >
-                    <div class="p-3" style="max-width: 700px">
-                      <h4
-                        class="text-white text-uppercase font-weight-medium mb-3"
-                      >
-                        Quality Products at the Best Price
-                      </h4>
-                      <h3 class="display-4 text-white font-weight-bold mb-4">
-                        Fashionable Dress
-                      </h3>
-                      <a href="" class="btn btn-primary btn-lg">Shop Now</a>
-                    </div>
-                  </div>
-                </div>
-                <div class="carousel-item">
-                  <img class="img-fluid" src="img/product5.jpeg" alt="Image" />
-                  <div
-                    class="carousel-caption d-flex flex-column align-items-center justify-content-center glass-effect"
-                  >
-                    <div class="p-3" style="max-width: 700px">
-                      <h4
-                        class="text-white text-uppercase font-weight-medium mb-3"
-                      >
-                        Quality Products at the Best Price
-                      </h4>
-                      <h3 class="display-4 text-white font-weight-bold mb-4">
-                        Reasonable Price
-                      </h3>
-                      <a href="" class="btn btn-primary btn-lg">Shop Now</a>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div class="carousel-inner"></div>
               <a
                 class="carousel-control-prev"
                 href="#header-carousel"
@@ -344,48 +307,6 @@
     </div>
     <!-- Featured End -->
 
-    <!-- Offer Start -->
-    <div class="section-padding">
-      <div class="container-fluid">
-        <div class="row px-xl-5">
-          <div class="col-md-6 pb-4">
-            <div class="offer-card text-center mb-2">
-              <div class="position-relative" style="z-index: 2">
-                <h5 class="text-uppercase mb-3">Need Help?</h5>
-                <h1 class="mb-4 font-weight-bold">Chat With Us</h1>
-                <a href="https://wa.link/jni8uj" class="btn btn-outline-light"
-                  >Contact Now</a
-                >
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6 pb-4">
-            <div
-              class="offer-card text-center mb-2"
-              style="
-                background: linear-gradient(
-                  135deg,
-                  var(--accent-color),
-                  var(--primary-color)
-                );
-              "
-            >
-              <div class="position-relative" style="z-index: 2">
-                <h5 class="text-uppercase mb-3">Join Our</h5>
-                <h1 class="mb-4 font-weight-bold">Whatsapp Group</h1>
-                <a
-                  href="https://chat.whatsapp.com/HBvVGrKhg29DvRfgVBXHNw"
-                  class="btn btn-outline-light"
-                  >Join Now</a
-                >
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Offer End -->
-
     <!-- Products Start -->
     <div class="section-padding">
       <div class="container-fluid">
@@ -398,6 +319,50 @@
         </div>
 
         <!-- Products End -->
+
+        <!-- Offer Start -->
+        <div class="section-padding">
+          <div class="container-fluid">
+            <div class="row px-xl-5">
+              <div class="col-md-6 pb-4">
+                <div class="offer-card text-center mb-2">
+                  <div class="position-relative" style="z-index: 2">
+                    <h5 class="text-uppercase mb-3">Need Help?</h5>
+                    <h1 class="mb-4 font-weight-bold">Chat With Us</h1>
+                    <a
+                      href="https://wa.link/jni8uj"
+                      class="btn btn-outline-light"
+                      >Contact Now</a
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 pb-4">
+                <div
+                  class="offer-card text-center mb-2"
+                  style="
+                    background: linear-gradient(
+                      135deg,
+                      var(--accent-color),
+                      var(--primary-color)
+                    );
+                  "
+                >
+                  <div class="position-relative" style="z-index: 2">
+                    <h5 class="text-uppercase mb-3">Join Our</h5>
+                    <h1 class="mb-4 font-weight-bold">Whatsapp Group</h1>
+                    <a
+                      href="https://chat.whatsapp.com/HBvVGrKhg29DvRfgVBXHNw"
+                      class="btn btn-outline-light"
+                      >Join Now</a
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Offer End -->
 
         <!-- Footer Start -->
         <div class="footer">
@@ -571,7 +536,7 @@
               console.log("Fetched product:", p); // ✅ Debug to check data
 
               const productHTML = `
-  <div class="col-lg-3 col-md-6 col-sm-12 pb-1">
+  <div class="col-lg-3 col-md-6 col-6 pb-1">
     <div class="card product-item mb-4 hover-lift animate-fade-in">
       <div class="card-header product-img position-relative overflow-hidden bg-transparent p-0">
         <img class="img-fluid w-100" src="${p.image_url}" alt="${p.name}">
@@ -603,7 +568,106 @@
             });
           }
 
-          loadProducts();
+          // PAGINATION
+          let allProducts = [];
+          let currentPage = 1;
+          const productsPerPage = 10;
+
+          async function loadAndRenderProducts() {
+            const { data: products, error } = await supabase
+              .from("products")
+              .select("*")
+              .order("created_at", { ascending: false });
+            if (error) {
+              console.error("Error fetching products:", error);
+              return;
+            }
+            allProducts = products;
+            renderProductsPage(1);
+            renderPagination();
+          }
+
+          function renderProductsPage(page) {
+            productsContainer.innerHTML = "";
+            const start = (page - 1) * productsPerPage;
+            const end = start + productsPerPage;
+            allProducts.slice(start, end).forEach((p) => {
+              const productHTML = `
+  <div class=\"col-lg-3 col-md-6 col-6 pb-1\">
+    <div class=\"card product-item mb-4 hover-lift animate-fade-in\">
+      <div class=\"card-header product-img position-relative overflow-hidden bg-transparent p-0\">
+        <img class=\"img-fluid w-100\" src=\"${p.image_url}\" alt=\"${p.name}\">
+      </div>
+      <div class=\"card-body text-center\">
+        <h6 class=\"text-truncate mb-3 product-name\">${p.name}</h6>
+        <div class=\"d-flex justify-content-center\">
+          <h6 class=\"price product-price\">₦${Number(
+            p.price
+          ).toLocaleString()}</h6>
+        </div>
+        <span class=\"badge badge-secondary\">${p.category}</span>
+      </div>
+      <div class=\"card-footer d-flex justify-content-between\">
+        <a href=\"detail.html?id=${
+          p.id
+        }\" class=\"btn btn-outline-primary btn-sm\">
+          <i class=\"fas fa-eye mr-1\"></i>View
+        </a>
+        <a href=\"#\" class=\"btn btn-primary btn-sm add-to-cart\" data-product='${JSON.stringify(
+          p
+        )}'>
+          <i class=\"fas fa-shopping-cart mr-1\"></i>Add to Cart
+        </a>
+      </div>
+    </div>
+  </div>
+`;
+              productsContainer.innerHTML += productHTML;
+            });
+          }
+
+          function renderPagination() {
+            let totalPages = Math.ceil(allProducts.length / productsPerPage);
+            let paginationHtml = `<nav aria-label=\"Page navigation\"><ul class=\"pagination justify-content-center mb-3\">`;
+            paginationHtml += `<li class=\"page-item${
+              currentPage === 1 ? " disabled" : ""
+            }\"><a class=\"page-link\" href=\"#\" data-page=\"prev\">&laquo; Previous</a></li>`;
+            for (let i = 1; i <= totalPages; i++) {
+              paginationHtml += `<li class=\"page-item${
+                i === currentPage ? " active" : ""
+              }\"><a class=\"page-link\" href=\"#\" data-page=\"${i}\">${i}</a></li>`;
+            }
+            paginationHtml += `<li class=\"page-item${
+              currentPage === totalPages ? " disabled" : ""
+            }\"><a class=\"page-link\" href=\"#\" data-page=\"next\">Next &raquo;</a></li>`;
+            paginationHtml += `</ul></nav>`;
+            // Insert after products
+            productsContainer.insertAdjacentHTML("afterend", paginationHtml);
+            // Add event listeners
+            document
+              .querySelectorAll(".pagination .page-link")
+              .forEach((link) => {
+                link.addEventListener("click", function (e) {
+                  e.preventDefault();
+                  let page = this.getAttribute("data-page");
+                  let totalPages = Math.ceil(
+                    allProducts.length / productsPerPage
+                  );
+                  if (page === "prev" && currentPage > 1) {
+                    currentPage--;
+                  } else if (page === "next" && currentPage < totalPages) {
+                    currentPage++;
+                  } else if (!isNaN(parseInt(page))) {
+                    currentPage = parseInt(page);
+                  }
+                  renderProductsPage(currentPage);
+                  document.querySelector(".pagination").remove();
+                  renderPagination();
+                });
+              });
+          }
+
+          loadAndRenderProducts();
         </script>
         <script src="js/search.js"></script>
         <script src="js/auth.js"></script>
