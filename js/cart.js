@@ -3,10 +3,10 @@ let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 const cartTableBody = document.getElementById("cart-items");
 const subtotalEl = document.getElementById("cart-subtotal");
-const shippingEl = document.getElementById("cart-shipping");
+
 const totalEl = document.getElementById("cart-total");
 
-const shippingRate = 1000; // Example: ₦1000 flat shipping
+
 
 function renderCart() {
   cartTableBody.innerHTML = "";
@@ -38,12 +38,11 @@ function renderCart() {
     cartTableBody.innerHTML += row;
   });
 
-  let shipping = subtotal > 0 ? shippingRate : 0;
-  let total = subtotal + shipping;
+ 
+  let total = subtotal;
 
   subtotalEl.innerText = `₦${subtotal.toLocaleString()}`;
-  shippingEl.innerText = `₦${shipping.toLocaleString()}`;
-  totalEl.innerText = `₦${total.toLocaleString()}`;
+   totalEl.innerText = `₦${total.toLocaleString()}`;
 }
 
 function updateQuantity(index, qty) {
